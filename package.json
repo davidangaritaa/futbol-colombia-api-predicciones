@@ -1,0 +1,16 @@
+{
+  "name": "api-futbol-colombia",
+  "version": "1.0.0",
+  "description": "API de la Liga BetPlay Dimayor con datos recolectados por web scraping",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "scrape": "node src/scripts/scrape.js"
+  },
+  "keywords": [],
+  "type": "module",
+  "dependencies": {
+    "cheerio": "^1.2.0",
+    "express": "^5.3.0"
+  }
+}
