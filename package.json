@@ -1,5 +1,5 @@
 {
-  "name": "api-futbol-colombia",
+  "name": "futbol-colombia-api-predicciones",
   "version": "1.0.0",
   "description": "API de la Liga BetPlay Dimayor con datos recolectados por web scraping",
   "scripts": {

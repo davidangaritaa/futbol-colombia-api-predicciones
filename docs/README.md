@@ -13,6 +13,7 @@ Documentación técnica del proyecto. Para empezar rápido, ve al [README princi
 | [Base de datos](base-de-datos.md) | Esquema SQLite, tablas, claves y consultas útiles |
 | [Configuración y despliegue](configuracion.md) | Variables de entorno, puesta en producción y seguridad |
 | [Guía de desarrollo](desarrollo.md) | Cómo extender el proyecto, convenciones y solución de problemas |
+| [Modelo de predicción](modelo.md) | Machine learning 1X2: variables, evaluación temporal y resultados |
 
 ## Resumen en una línea
 

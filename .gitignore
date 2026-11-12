@@ -1,3 +1,6 @@
 node_modules/
 data/
 .env
+ml/.venv/
+ml/modelos/
+__pycache__/

@@ -18,7 +18,7 @@ Temporadas **2023 a 2026**. Para cada una: torneos, fases, equipos con escudo, p
 
 Y para **cada partido jugado**: eventos con minuto (goles, penales, autogoles, tarjetas, cambios), alineaciones (titulares y suplentes), cuerpo técnico y árbitros (incluido VAR).
 
-> **Objetivo:** estos datos son la base para análisis y predicción de partidos con machine learning.
+> **Objetivo:** estos datos son la base para análisis y predicción de partidos con machine learning. El modelo está en [`ml/`](docs/modelo.md).
 
 ## Cómo funciona
 
