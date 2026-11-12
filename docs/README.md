@@ -1,4 +1,4 @@
-# Documentación — API Liga BetPlay Dimayor
+# Documentación — API fútbol colombiano (Dimayor)
 
 Documentación técnica del proyecto. Para empezar rápido, ve al [README principal](../README.md).
 
@@ -24,8 +24,11 @@ dimayor.com.co ──(scraper)──► recolector ──► SQLite (data/futbol
 
 | Término | Significado |
 |---|---|
+| **Competición** | Liga BetPlay, Torneo BetPlay (Primera B), Liga Femenina, Copa BetPlay o Superliga. En la API: `liga`, `torneo`, `femenina`, `copa`, `superliga`. |
 | **Temporada** | Un año (2023, 2024, 2025, 2026). |
-| **Torneo** | Una competición dentro de la temporada: Apertura (I) y Clausura (II). Dimayor lo llama *competition*. |
+| **Torneo** | Una edición de una competición dentro de la temporada, p. ej. Liga BetPlay Apertura (I) y Clausura (II) 2026. Dimayor lo llama *competition*. |
+| **Rama** | `masculino` o `femenino`. Un club con equipo en ambas ramas tiene dos equipos en la API. |
+| **Grupo** | Subdivisión de una fase de cuadrangulares (`A`, `B`). |
 | **Fase** | Etapa del torneo: todos contra todos, cuartos, cuadrangulares, final. Dimayor lo llama *phase*. |
 | **Jornada** | Una fecha del torneo (matchday). |
 | **Reclasificación** | Tabla que suma los puntos de todos los torneos del año. |

@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "scrape": "node src/scripts/scrape.js"
+    "scrape": "node src/scripts/scrape.js",
+    "detalles": "node src/scripts/detalles.js"
   },
   "keywords": [],
   "type": "module",

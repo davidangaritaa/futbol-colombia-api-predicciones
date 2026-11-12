@@ -49,17 +49,32 @@ Ejemplo: tarjetas por jugador.
 5. **Recolector:** guarda los datos en `recolectarTorneo()` de `src/collector.js`, dentro de una `transaction()`.
 6. **API:** agrega el endpoint y documenta todo.
 
-### …otra competición (Liga Femenina, Copa, Torneo BetPlay)
+### …una competición nueva
 
-Dimayor usa las mismas acciones AJAX con otro `competition_type`. Los valores que aparecen en el sitio son:
+Las 5 competiciones actuales (Liga, Primera B, Femenina, Copa y Superliga) están en `COMPETICIONES` de `src/config.js`. Si Dimayor agrega otra con el mismo sistema:
 
-- `Liga BetPlay`
-- `Torneo BetPlay`
-- `Liga Femenina`
-- `Copa BetPlay`
-- `Superliga`
+1. Busca su `data-competition-type-name` en la página de la liga (ver [scraper](scraper.md#tipos-de-competición)) y qué pestañas (`data-type`) ofrece.
+2. Agrega una entrada:
+   ```js
+   nueva: {
+     nombre: 'Nombre para mostrar', tipo: 'valor de competition_type', rama: 'masculino',
+     tablas: ['posiciones', 'goleadores'],
+   },
+   ```
+3. Recolecta: `npm run scrape -- --anio 2026 --competicion nueva`.
 
-Hoy el tipo está fijo en `config.competitionType`. Para soportar varios habría que pasarlo como parámetro a las funciones de `dimayor.js` y guardar el tipo en la tabla `torneos`.
+No hace falta tocar la base ni las rutas.
+
+### …un canal de TV
+
+Si aparecen canales con `nombre: null`, agrega el patrón del nombre de archivo del logo a la lista `CANALES` en `src/scraper/parsers.js`. Los patrones se revisan en orden, así que los más específicos van primero.
+
+### …un cambio en el esquema de la base
+
+1. Modifica los `CREATE TABLE` en `src/db/database.js`.
+2. Sube `VERSION_ESQUEMA`. Al arrancar, las bases antiguas se recrearán vacías.
+3. Anota el cambio en la tabla de versiones de [base-de-datos.md](base-de-datos.md#versión-del-esquema).
+4. Vuelve a recolectar las temporadas.
 
 ## Probar rápidamente
 
@@ -68,7 +83,7 @@ Probar un parser sin servidor ni base:
 ```bash
 node --input-type=module -e "
 import { getPosiciones } from './src/scraper/dimayor.js';
-console.table(await getPosiciones({ torneoId: 186027, faseId: 186219 }));
+console.table(await getPosiciones({ tipo: 'Liga BetPlay', torneoId: 186027, faseId: '186219' }));
 "
 ```
 
@@ -91,12 +106,13 @@ curl "http://localhost:3000/api/partidos?jornada=1"
 | `404 Aún no hay datos` | La base está vacía: ejecuta `npm run scrape`. |
 | La tabla no muestra los últimos resultados | Ejecuta `npm run scrape` o `POST /api/recolectar`; revisa `GET /api/estado` para ver la fecha de la última recolección. |
 | Errores al recolectar | Ver [scraper → cuando se rompe](scraper.md#cuando-el-scraper-se-rompe). |
-| Aparece un equipo duplicado con otro nombre | Dimayor cambió cómo escribe el nombre. Une los registros en la base o agrega una tabla de alias en el recolector. |
+| Aparece un equipo duplicado con otro nombre | Dimayor lo escribe de otra forma. Agrega el nombre alternativo a `ALIAS_EQUIPOS` en `src/scraper/parsers.js`, borra `data/` y vuelve a recolectar. |
+| `[db] Esquema vN obsoleto: se recrea la base` | Se actualizó el esquema; la base quedó vacía. Vuelve a recolectar. |
+| `Aviso: Posiciones de ...: HTTP 500` | Fallo de Dimayor en esa tabla; el resto se guardó. Ver [fallos conocidos](scraper.md#fallos-conocidos-de-dimayor). |
 
 ## Ideas para seguir
 
 - Detalle de partido (goles, tarjetas, alineaciones): cada partido jugado tiene `data-match-api-id` y un botón "Detalles" en el sitio.
 - Plantillas de jugadores por equipo.
-- Otras competiciones (ver arriba).
 - Pruebas automáticas de los parsers.
 - *Rate limit* y caché HTTP (`Cache-Control`) en la API.

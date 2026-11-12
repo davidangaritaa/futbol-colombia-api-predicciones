@@ -13,11 +13,11 @@ Se leen en `src/config.js`.
 |---|---|---|
 | `PORT` | `3000` | Puerto HTTP de la API. |
 | `DB_PATH` | `data/futbol.db` | Ruta del archivo SQLite (relativa a la carpeta desde la que se ejecuta). |
-| `SCRAPE_INTERVAL_MIN` | `360` | Minutos entre recolecciones automáticas del torneo activo. `0` las desactiva. |
+| `SCRAPE_INTERVAL_MIN` | `360` | Minutos entre recolecciones automáticas de los torneos activos de las 5 competiciones (~1–1,5 min cada una). `0` las desactiva. |
 | `REQUEST_DELAY_MS` | `600` | Pausa mínima entre peticiones a Dimayor. No conviene bajarla. |
 | `ADMIN_TOKEN` | *(vacío)* | Si se define, `POST /api/recolectar` exige el header `x-admin-token` con este valor. |
 
-Valores fijos en `config.js` (no son variables de entorno): URL de la página de la liga, URL de `admin-ajax.php`, User-Agent y tipo de competición (`Liga BetPlay`).
+Valores fijos en `config.js` (no son variables de entorno): URL de la página de la liga, URL de `admin-ajax.php`, User-Agent, las competiciones (`COMPETICIONES`) y la competición por defecto de la API (`COMPETICION_POR_DEFECTO = 'liga'`).
 
 ### Cómo definirlas
 
@@ -63,8 +63,10 @@ Recolectar más seguido que cada 30–60 minutos no aporta mucho: Dimayor actual
    ```bash
    npm ci --omit=dev
    ```
-3. Carga los datos históricos que quieras:
+3. Carga los datos históricos que quieras (unos 2 minutos por año, las 5 competiciones):
    ```bash
+   npm run scrape -- --anio 2023
+   npm run scrape -- --anio 2024
    npm run scrape -- --anio 2025
    npm run scrape -- --anio 2026
    ```
@@ -77,7 +79,7 @@ Recolectar más seguido que cada 30–60 minutos no aporta mucho: Dimayor actual
    ```
 6. Opcional: pon un proxy inverso (Nginx, Caddy) delante para HTTPS.
 
-> El servidor necesita un **disco persistente** para `data/futbol.db`. Plataformas con disco efímero (algunas capas gratuitas) pierden la base en cada reinicio; ahí la base se vuelve a llenar sola al arrancar, pero solo con el torneo activo.
+> El servidor necesita un **disco persistente** para `data/futbol.db`. Plataformas con disco efímero (algunas capas gratuitas) pierden la base en cada reinicio; ahí la base se vuelve a llenar sola al arrancar, pero solo con los torneos activos.
 
 ## Seguridad
 

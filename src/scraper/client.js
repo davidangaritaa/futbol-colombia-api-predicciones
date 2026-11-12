@@ -76,6 +76,17 @@ export async function ajax(action, params = {}, { retry = true } = {}) {
   return json.data;
 }
 
+// Consulta la API REST de Dimayor (/wp-json/dimayor/v1/...), usada para el detalle de partidos.
+// No requiere nonce. Devuelve null si el recurso no existe (404).
+export async function rest(ruta) {
+  try {
+    return JSON.parse(await httpFetch(`${config.dimayorRest}${ruta}`));
+  } catch (err) {
+    if (/HTTP 404/.test(err.message)) return null;
+    throw err;
+  }
+}
+
 function stringify(obj) {
   return Object.fromEntries(
     Object.entries(obj).filter(([, v]) => v !== undefined && v !== null).map(([k, v]) => [k, String(v)]),

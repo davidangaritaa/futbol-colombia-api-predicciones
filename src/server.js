@@ -2,6 +2,7 @@ import express from 'express';
 import { config } from './config.js';
 import { api } from './routes/api.js';
 import { recolectar } from './collector.js';
+import { recolectarDetalles } from './detalles.js';
 import { getMeta } from './db/database.js';
 
 const app = express();
@@ -16,9 +17,17 @@ app.listen(config.port, () => {
   console.log(`API escuchando en http://localhost:${config.port}/api`);
 });
 
-// Recolección automática periódica del torneo activo.
+// Recolección automática periódica: torneos activos de todas las competiciones y, después,
+// el detalle (eventos, alineaciones, árbitros) de los partidos que terminaron desde la última vez.
 if (config.scrapeIntervalMin > 0) {
-  const correr = () => recolectar().catch((err) => console.error('[recolector] Error:', err.message));
+  const correr = async () => {
+    try {
+      await recolectar();
+      await recolectarDetalles();
+    } catch (err) {
+      console.error('[recolector] Error:', err.message);
+    }
+  };
   if (!getMeta('ultima_recoleccion')) correr(); // primera vez: llenar la base al arrancar
   setInterval(correr, config.scrapeIntervalMin * 60 * 1000);
   console.log(`Recolección automática cada ${config.scrapeIntervalMin} minutos`);
