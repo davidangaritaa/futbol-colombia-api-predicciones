@@ -95,7 +95,7 @@ api.get('/torneos', (req, res) => {
 
 api.get('/torneos/:id', (req, res) => {
   const torneo = resolverTorneo(req.params.id);
-  const fases = all('SELECT id, nombre, jornadas FROM fases WHERE torneo_id = ? ORDER BY id', torneo.id);
+  const fases = all('SELECT id, nombre, jornadas, orden FROM fases WHERE torneo_id = ? ORDER BY orden, id', torneo.id);
   res.json({ ...torneo, fases });
 });
 
@@ -121,7 +121,7 @@ api.get('/partidos', (req, res) => {
   if (equipo) { where.push('(p.local_id = ? OR p.visitante_id = ?)'); params.push(Number(equipo), Number(equipo)); }
   if (estado) { where.push('p.estado = ?'); params.push(estado); }
   if (fecha) { where.push('p.fecha = ?'); params.push(fecha); }
-  const rows = all(`${PARTIDO_SQL} WHERE ${where.join(' AND ')} ORDER BY p.fase_id, p.jornada, p.fecha, p.hora`, ...params);
+  const rows = all(`${PARTIDO_SQL} WHERE ${where.join(' AND ')} ORDER BY f.orden, p.jornada, p.fecha, p.hora`, ...params);
   res.json({ torneo: torneo.nombre, total: rows.length, partidos: rows.map(mapPartido) });
 });
 
@@ -130,7 +130,7 @@ api.get('/posiciones', (req, res) => {
   const fase = req.query.fase
     ? get('SELECT * FROM fases WHERE id = ? AND torneo_id = ?', Number(req.query.fase), torneo.id)
     : get(`SELECT f.* FROM fases f WHERE f.torneo_id = ? AND EXISTS
-             (SELECT 1 FROM tablas t WHERE t.fase_id = f.id AND t.tipo = 'posiciones') ORDER BY f.id LIMIT 1`, torneo.id);
+             (SELECT 1 FROM tablas t WHERE t.fase_id = f.id AND t.tipo = 'posiciones') ORDER BY f.orden, f.id LIMIT 1`, torneo.id);
   if (!fase) throw new HttpError(404, 'Fase no encontrada para este torneo');
   res.json({ torneo: torneo.nombre, fase: fase.nombre, tabla: all(TABLA_SQL, torneo.id, fase.id, 'posiciones').map(mapTabla) });
 });

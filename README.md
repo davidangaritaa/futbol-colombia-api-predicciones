@@ -2,6 +2,8 @@
 
 API REST con datos de la liga colombiana de fútbol, recolectados por **web scraping** del sitio oficial [dimayor.com.co](https://dimayor.com.co).
 
+📚 **Documentación completa en [`docs/`](docs/README.md)**: arquitectura, referencia de la API, scraper, recolección, base de datos, configuración y guía de desarrollo.
+
 ## Cómo funciona
 
 ```

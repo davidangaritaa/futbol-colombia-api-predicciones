@@ -12,8 +12,8 @@ const stmt = {
   temporada: db.prepare('INSERT INTO temporadas (id, anio) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET anio = excluded.anio'),
   torneo: db.prepare(`INSERT INTO torneos (id, temporada_id, nombre) VALUES (?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET nombre = excluded.nombre, temporada_id = excluded.temporada_id`),
-  fase: db.prepare(`INSERT INTO fases (id, torneo_id, nombre, jornadas) VALUES (?, ?, ?, ?)
-    ON CONFLICT(id) DO UPDATE SET nombre = excluded.nombre, jornadas = excluded.jornadas`),
+  fase: db.prepare(`INSERT INTO fases (id, torneo_id, nombre, jornadas, orden) VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET nombre = excluded.nombre, jornadas = excluded.jornadas, orden = excluded.orden`),
   equipo: db.prepare(`INSERT INTO equipos (nombre, escudo) VALUES (?, ?)
     ON CONFLICT(nombre) DO UPDATE SET escudo = COALESCE(excluded.escudo, equipos.escudo) RETURNING id`),
   partido: db.prepare(`INSERT INTO partidos (clave, api_id, torneo_id, fase_id, jornada, fecha, hora, local_id, visitante_id,
@@ -75,11 +75,29 @@ function guardarDescenso(torneoId, filas) {
   });
 }
 
+// Ni los IDs ni el orden en que Dimayor entrega las fases son cronológicos
+// (p. ej. en 2025 la final aparece antes que los cuadrangulares). Se ordenan por
+// la fecha de su primer partido; las fases sin partidos quedan al final.
+function ordenarFasesPorFecha(torneoId) {
+  db.prepare(`
+    UPDATE fases SET orden = (
+      SELECT rn FROM (
+        SELECT f.id, ROW_NUMBER() OVER (
+          ORDER BY (SELECT MIN(p.fecha) FROM partidos p WHERE p.fase_id = f.id) IS NULL,
+                   (SELECT MIN(p.fecha) FROM partidos p WHERE p.fase_id = f.id),
+                   f.orden
+        ) AS rn
+        FROM fases f WHERE f.torneo_id = ?
+      ) r WHERE r.id = fases.id
+    ) WHERE torneo_id = ?`).run(torneoId, torneoId);
+}
+
 // ---------- Recolección ----------
 
 async function recolectarTorneo(torneo) {
   const fases = await dimayor.getFases(torneo.id);
-  for (const fase of fases) stmt.fase.run(fase.id, torneo.id, fase.nombre, fase.jornadas);
+  fases.forEach((fase, i) => { fase.orden = i + 1; }); // Dimayor entrega las fases en orden
+  for (const fase of fases) stmt.fase.run(fase.id, torneo.id, fase.nombre, fase.jornadas, fase.orden);
   log(`Torneo "${torneo.nombre}": ${fases.length} fase(s)`);
 
   for (const fase of fases) {
@@ -95,10 +113,12 @@ async function recolectarTorneo(torneo) {
       guardarPartidos(torneo.id, fase.id, jornada, partidos);
       jornadas = jornada;
     }
-    if (!declaradas && jornadas) stmt.fase.run(fase.id, torneo.id, fase.nombre, jornadas);
+    if (!declaradas && jornadas) stmt.fase.run(fase.id, torneo.id, fase.nombre, jornadas, fase.orden);
     guardarTabla(torneo.id, fase.id, 'posiciones', await dimayor.getPosiciones(q));
     log(`  Fase "${fase.nombre}": ${jornadas} jornada(s) recolectadas`);
   }
+
+  ordenarFasesPorFecha(torneo.id);
 
   // Tablas generales del torneo (se consultan con la primera fase)
   if (fases.length) {

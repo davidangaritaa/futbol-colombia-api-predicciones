@@ -26,7 +26,8 @@ db.exec(`
     id        INTEGER PRIMARY KEY,
     torneo_id INTEGER NOT NULL REFERENCES torneos(id),
     nombre    TEXT NOT NULL,
-    jornadas  INTEGER NOT NULL DEFAULT 0
+    jornadas  INTEGER NOT NULL DEFAULT 0,
+    orden     INTEGER NOT NULL DEFAULT 0  -- posición de la fase en el torneo (los IDs de Dimayor no siguen el orden)
   );
 
   CREATE TABLE IF NOT EXISTS equipos (
@@ -84,6 +85,11 @@ db.exec(`
     valor TEXT
   );
 `);
+
+// Migración para bases creadas antes de existir la columna fases.orden.
+if (!db.prepare('PRAGMA table_info(fases)').all().some((c) => c.name === 'orden')) {
+  db.exec('ALTER TABLE fases ADD COLUMN orden INTEGER NOT NULL DEFAULT 0');
+}
 
 // Ejecuta fn dentro de una transacción.
 export function transaction(fn) {
