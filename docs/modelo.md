@@ -74,3 +74,50 @@ Variables más importantes según LightGBM: `elo_dif`, diferencia de gol y punto
 2. **Variables de plantel** a partir de las alineaciones: cuántos titulares habituales juegan, rotación, suspendidos por acumulación de amarillas.
 3. **Selección de variables** más compacta alrededor del Elo, y Elo separado de local y visitante.
 4. Más historia: Dimayor solo ofrece desde 2023.
+
+## Premier League
+
+Para probar el método con más datos, el proyecto también modela la Premier League. Es independiente de la API de Colombia: tiene su propia base, `data/premier.db`.
+
+```bash
+ml/.venv/Scripts/python ml/premier_datos.py        # descarga (usa caché en data/premier/raw/; --refrescar para todo)
+ml/.venv/Scripts/python ml/premier_entrenar.py     # entrena y evalúa
+```
+
+### Fuente
+
+- **Archivo público de Fantasy Premier League** ([vaastav/Fantasy-Premier-League](https://github.com/vaastav/Fantasy-Premier-League)): una fila por jugador y partido desde 2016-17, con minutos, titularidad, goles, asistencias, tarjetas, puntos FPL y, desde 2022-23, xG y xA.
+- **API oficial de FPL**: completa los partidos de la temporada en curso que el archivo aún no tiene. Esos partidos tienen resultado, pero no datos de jugadores.
+- No se usaron ni football-data.co.uk ni Understat: el primero corta la conexión desde la red actual y el segundo estaba fuera de servicio.
+
+Datos: 4.180 partidos (10 temporadas completas más la actual) y unas 258.000 filas de jugador por partido. Los equipos con nombres distintos entre temporadas se unifican con `ALIAS` en `premier_datos.py`.
+
+### Variables extra (de plantel)
+
+| Variable | Descripción |
+|---|---|
+| `xg5`, `xgc5` | xG a favor y en contra, media de los últimos 5 partidos (solo desde 2022-23). |
+| `calidad_habitual` | Calidad media del once titular en los últimos 5 partidos. La calidad de un jugador es su media de puntos FPL en sus 10 apariciones anteriores. |
+| `calidad_xi` | Calidad del once titular de **ese** partido. Las alineaciones se publican ~1 hora antes. |
+| `xi_vs_habitual` | `calidad_xi − calidad_habitual`: mide si faltan titulares (lesiones, rotación). |
+| `cambios_xi` | Titulares distintos respecto al partido anterior. |
+
+Los equipos ascendidos arrancan con un Elo 100 puntos por debajo del inicial.
+
+### Resultados (entrenamiento 2017-18 a 2023-24, prueba desde 2024-25: 860 partidos)
+
+| Modelo | Acierto | Log loss |
+|---|--:|--:|
+| Referencia: frecuencias | 41,7 % | 1,084 |
+| **Referencia: solo Elo** | **50,9 %** | **1,014** |
+| Regresión logística, base | 48,9 % | 1,028 |
+| Regresión logística, + plantel | 49,3 % | 1,033 |
+| Regresión logística, + alineación | 50,0 % | 1,038 |
+| LightGBM, + alineación | 48,3 % | 1,042 |
+
+Pruebas adicionales: modelos compactos (Elo más una o dos variables) y ajuste del K del Elo para la Premier (K=20–30 es apenas mejor que 40). Ninguna combinación mejora al Elo solo de forma clara. La mejor, Elo + calidad del once, empata con él (log loss 1,011 frente a 1,012).
+
+**Conclusiones:**
+- Igual que en Colombia, el **Elo resume casi toda la información útil**. La forma, el xG reciente y la calidad del once, medida con puntos FPL, ya están reflejados en el Elo.
+- El periodo de prueba es más difícil que el de validación. La victoria local cayó al 41,7 %, y el mismo Elo que acertaba 55,7 % en 2022-24 acierta 50,3 % desde 2024.
+- Para superar al Elo hace falta una medida de jugadores mejor que los puntos FPL, o un modelo de goles (Dixon-Coles). Sin cuotas no se puede comparar con el mercado.

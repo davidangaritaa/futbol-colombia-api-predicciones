@@ -30,10 +30,23 @@ def _media(valores, campo):
     return float(np.mean([v[campo] for v in valores])) if valores else np.nan
 
 
+class _Ratings(dict):
+    """Diccionario equipo -> Elo que asigna el rating inicial la primera vez que ve un equipo."""
+    def __init__(self, inicial):
+        super().__init__()
+        self.inicial = inicial
+
+    def __missing__(self, equipo):
+        self[equipo] = self.inicial(equipo)
+        return self[equipo]
+
+
 class Estado:
-    def __init__(self, k=ELO_K, ventaja=ELO_VENTAJA_LOCAL):
+    def __init__(self, k=ELO_K, ventaja=ELO_VENTAJA_LOCAL, elo_inicial=None):
         self.k, self.ventaja = k, ventaja
-        self.elo = defaultdict(lambda: ELO_INICIAL)
+        # elo_inicial: función equipo -> rating de partida (p. ej. más bajo para los ascendidos).
+        inicial = elo_inicial or (lambda _equipo: ELO_INICIAL)
+        self.elo = _Ratings(inicial)
         self.historial = defaultdict(lambda: deque(maxlen=10))        # todos los partidos del equipo
         self.historial_local = defaultdict(lambda: deque(maxlen=VENTANA_FORMA))
         self.historial_visita = defaultdict(lambda: deque(maxlen=VENTANA_FORMA))
@@ -90,9 +103,9 @@ class Estado:
             self.partidos_jugados[eq] += 1
 
 
-def construir(df: pd.DataFrame, k=ELO_K, ventaja=ELO_VENTAJA_LOCAL) -> pd.DataFrame:
+def construir(df: pd.DataFrame, k=ELO_K, ventaja=ELO_VENTAJA_LOCAL, elo_inicial=None) -> pd.DataFrame:
     """Una fila por partido con variables previas y, si se jugó, el resultado (columna `y`)."""
-    estado = Estado(k, ventaja)
+    estado = Estado(k, ventaja, elo_inicial)
     filas = []
     df = df.copy()
     df["dia"] = df.momento.dt.normalize()
