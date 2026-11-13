@@ -121,3 +121,64 @@ Pruebas adicionales: modelos compactos (Elo más una o dos variables) y ajuste d
 - Igual que en Colombia, el **Elo resume casi toda la información útil**. La forma, el xG reciente y la calidad del once, medida con puntos FPL, ya están reflejados en el Elo.
 - El periodo de prueba es más difícil que el de validación. La victoria local cayó al 41,7 %, y el mismo Elo que acertaba 55,7 % en 2022-24 acierta 50,3 % desde 2024.
 - Para superar al Elo hace falta una medida de jugadores mejor que los puntos FPL, o un modelo de goles (Dixon-Coles). Sin cuotas no se puede comparar con el mercado.
+
+## Totales: córners, goles, amarillas y ambos marcan
+
+`ml/totales.py` predice el **número esperado** de cada estadística con una regresión de Poisson y de ahí calcula la probabilidad de "más de X" para las líneas habituales. Todas las variables son previas al partido.
+
+```bash
+ml/.venv/Scripts/python ml/totales.py --liga colombia                  # goles y amarillas (con árbitro)
+ml/.venv/Scripts/python ml/totales.py --liga europa                    # Premier: córners, goles y amarillas
+ml/.venv/Scripts/python ml/totales.py --liga europa --division SP1     # LaLiga (también I1, D1, F1…)
+```
+
+### Fuentes
+
+| Liga | Córners | Goles | Amarillas | Árbitro | Cuotas |
+|---|:-:|:-:|:-:|:-:|:-:|
+| Colombia (`data/futbol.db`) | ❌ Dimayor no los publica | ✔ | ✔ | ✔ | ❌ |
+| Europa (copia de football-data) | ✔ | ✔ | ✔ | ❌ | ✔ más/menos 2,5 |
+
+Para Europa se usa `data/europa/raw/Matches.csv`, una copia de football-data.co.uk publicada en [xgabora/Club-Football-Match-Data](https://github.com/xgabora/Club-Football-Match-Data) (licencia MIT). Tiene 27 países desde el año 2000; la Premier (`E0`) suma 9.810 partidos, todos con córners. Se descarga sola la primera vez (`--descargar` la actualiza).
+
+### Variables
+
+Para cada estadística (córners, goles, amarillas, tiros):
+
+| Variable | Descripción |
+|---|---|
+| `l_<s>_favor`, `l_<s>_contra` | Lo que hace el local y lo que le hacen sus rivales (últimos 10 partidos); igual para el visitante (`v_`). |
+| `<s>_liga` | Media reciente de la competición. |
+| `<s>_esperados` | Favor de uno + contra del otro, para ambos lados, menos la media de la liga. |
+| `arbitro_am` | Amarillas por partido del árbitro central (solo Colombia). |
+
+Los córners usan además los tiros recientes. Las medias se suavizan hacia la media de la liga, como si hubiera 8 partidos "ficticios".
+
+### Resultados (log loss; menor es mejor)
+
+**Premier** (entrenamiento 2001–2024, prueba desde 2024-25: 780 partidos):
+
+| Línea | Media de la liga | Modelo | Casas de apuestas |
+|---|--:|--:|--:|
+| Córners +9,5 | 0,681 | 0,680 | — |
+| Córners +10,5 | 0,688 | 0,687 | — |
+| Goles +2,5 | 0,689 | 0,689 | **0,682** |
+| Amarillas +3,5 | 0,686 | 0,688 | — |
+| Ambos marcan | 0,691 | **0,683** | — |
+
+**Colombia** (prueba desde 2025-07: 1.324 partidos):
+
+| Línea | Media de la liga | Modelo |
+|---|--:|--:|
+| Amarillas +4,5 | 0,647 | **0,637** |
+| Amarillas +5,5 | 0,681 | **0,669** |
+| Goles +2,5 | 0,689 | 0,689 |
+| Ambos marcan | 0,696 | 0,697 |
+
+### Conclusiones
+
+- **Córners:** el modelo apenas mejora a la media de la liga. Que un equipo saque muchos córners a favor se compensa con que su rival saca pocos, y el total del partido varía sobre todo por azar.
+- **Goles +2,5:** las casas de apuestas son mejores que el modelo (0,682 frente a 0,689). Promediar ambos tampoco las supera.
+- **Amarillas:** solo hay ganancia en **Colombia, gracias al árbitro**. En la prueba, los árbitros más estrictos promediaron 6,1 amarillas y los más permisivos 5,1. En la Premier, sin árbitro, no hay mejora, y además la media de amarillas subió en la última temporada (57 % de partidos con +3,5 frente a 51 % predicho).
+- **Ambos marcan:** pequeña mejora en la Premier, sobre todo porque la media de la liga se queda atrasada.
+- Las probabilidades están en general bien calibradas, pero en estos mercados el resultado de cada partido es muy aleatorio. Un "acierto" alto en líneas extremas (por ejemplo 90 % en "menos de 6,5 amarillas") solo refleja lo que pasa casi siempre.
